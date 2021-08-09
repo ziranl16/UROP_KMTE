@@ -1,0 +1,12 @@
+Collecting requests
+  Using cached requests-2.26.0-py2.py3-none-any.whl (62 kB)
+Collecting certifi>=2017.4.17
+  Using cached certifi-2021.5.30-py2.py3-none-any.whl (145 kB)
+Collecting urllib3<1.27,>=1.21.1
+  Using cached urllib3-1.26.6-py2.py3-none-any.whl (138 kB)
+Collecting idna<4,>=2.5
+  Using cached idna-3.2-py3-none-any.whl (59 kB)
+Collecting charset-normalizer~=2.0.0
+  Using cached charset_normalizer-2.0.4-py3-none-any.whl (36 kB)
+Installing collected packages: urllib3, idna, charset-normalizer, certifi, requests
+Successfully installed certifi-2021.5.30 charset-normalizer-2.0.4 idna-3.2 requests-2.26.0 urllib3-1.26.6
