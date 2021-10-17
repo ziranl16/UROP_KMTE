@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="cf0597ac-8989-46de-966c-83cffa4e7819" name="UROP">
+        <fileTransfer rootFolder="/home/yangming" accessType="SFTP" host="idsd-2.d2.comp.nus.edu.sg" port="5028" sshConfigId="3a6e8b2f-f240-47cb-b44b-39fa52862a5f" sshConfig="yangming@idsd-2.d2.comp.nus.edu.sg:5028 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

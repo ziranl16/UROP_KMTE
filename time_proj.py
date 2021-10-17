@@ -9,6 +9,13 @@ import pickle, pdb, operator, random, sys
 import tensorflow as tf
 from collections import defaultdict as ddict
 from sklearn.metrics import precision_recall_fscore_support
+from scipy.integrate import quad
+import math
+
+
+def integrant(x, sigma, present, end):
+    return (1 / (sigma * math.sqrt(2 * math.pi))) * math.exp(-(((x - end) ** 2) / (2 * sigma ** 2)))
+
 
 YEARMIN = -50
 YEARMAX = 3000
@@ -168,6 +175,17 @@ class HyTE(Model):
         return inp_idx, start_idx, end_idx
 
     def load_data(self):
+        self.id2year = {'1': 1829, '0': 0, '2': 1857, '3': 1875, '4': 1889, '5': 1899, '6': 1906, '7': 1911, '8': 1916,
+                        '9': 1920, '10': 1924, '11': 1927, '12': 1930, '13': 1933, '14': 1937, '15': 1940, '16': 1943,
+                        '17': 1946, '18': 1949, '19': 1952, '20': 1955,
+                        '21': 1958, '22': 1961, '23': 1964, '24': 1966, '25': 1968, '26': 1970, '27': 1972, '28': 1974,
+                        '29': 1976, '30': 1978, '31': 1980, '32': 1982, '33': 1984,
+                        '34': 1986, '35': 1988, '36': 1990, '37': 1992, '38': 1994, '39': 1996, '40': 1997, '41': 1998,
+                        '42': 1999, '43': 2000, '44': 2001, '45': 2002,
+                        '46': 2003, '47': 2004, '48': 2005, '49': 2006, '50': 2007, '51': 2008, '52': 2009, '53': 2010,
+                        '54': 2011, '55': 2012, '56': 2013, '57': 2014, '58': 2015,
+                        '59': 2016, '60': 2017}
+
         triple_set = []
         with open(self.p.triple2id, 'r') as filein:
             for line in filein:
@@ -179,6 +197,7 @@ class HyTE(Model):
         self.start_time, self.end_time, self.num_class = ddict(dict), ddict(dict), ddict(dict)
         triple_time, entity_time = dict(), dict()
         self.inp_idx, self.start_idx, self.end_idx, self.labels = ddict(list), ddict(list), ddict(list), ddict(list)
+        self.variance_idx = ddict(list)  # TODO add a list of variance
         max_ent, max_rel, count = 0, 0, 0
 
         with open(self.p.dataset, 'r') as filein:
@@ -208,10 +227,17 @@ class HyTE(Model):
         # for dtype in ['entity','triple']:
         # 	self.labels[dtype] = self.getOneHot(self.start_idx[dtype],self.end_idx[dtype], self.num_class)# Representing labels by one hot notation
 
+        times = []
+
+        # print(times)
         keep_idx = set(self.inp_idx['triple'])
         for i in range(len(train_triples) - 1, -1, -1):
             if i not in keep_idx:
                 del train_triples[i]
+                del triple_time[i]
+            # times.remove(element)  # TODO delete time as well
+
+        times = list(triple_time.values())
 
         with open(self.p.relation2id, 'r') as filein3:
             for line in filein3:
@@ -229,6 +255,12 @@ class HyTE(Model):
         tail = list(tail)
         rel = list(rel)
 
+        # print(len(head))
+        print(len(posh))
+        print(len(times))
+        for k in range(len(posh)):
+            self.variance_idx['triple'].append(1.00)
+
         for i in range(len(posh)):
             if self.start_idx['triple'][i] < self.end_idx['triple'][i]:
                 for j in range(self.start_idx['triple'][i] + 1, self.end_idx['triple'][i] + 1):
@@ -236,21 +268,42 @@ class HyTE(Model):
                     rel.append(rela[i])
                     tail.append(post[i])
                     self.start_idx['triple'].append(j)
+                    start_temp = times[i][0]
+                    end_temp = times[i][1]
+                    if start_temp == '####':
+                        start_temp = YEARMIN
+                    if end_temp == '####':
+                        end_temp = YEARMAX
+                    present_temp = self.id2year[str(j)]
+                    sigma_temp = self.variance[str(rela[i])]
+                    # print("start: {0}, present: {1}, end: {2}, sig: {3}".format(start_temp, present_temp, end_temp, sigma_temp))
+                    # print("length {0}".format(len(triple_time)))
+                    # print("testing {0}".format(triple_time[2][0]))
+                    c = 1 - quad(integrant, int(start_temp), int(present_temp),
+                                 args=(int(sigma_temp), int(present_temp), int(end_temp)))[0]
+                    # print(c)
+                    self.variance_idx['triple'].append(c)
 
-        self.ph, self.pt, self.r, self.nh, self.nt, self.triple_time = [], [], [], [], [], []
+        print(len(head))
+
+        print(len(self.start_idx['triple']))
+
+        self.ph, self.pt, self.r, self.nh, self.nt, self.triple_time, self.valid_list = [], [], [], [], [], [], []
         for triple in range(len(head)):
             neg_set = set()
             for k in range(self.p.M):
                 possible_head = randint(0, max_ent - 1)
                 while (possible_head, rel[triple], tail[triple]) in triple_set or (
-                possible_head, rel[triple], tail[triple]) in neg_set:
+                        possible_head, rel[triple], tail[triple]) in neg_set:
                     possible_head = randint(0, max_ent - 1)
                 self.nh.append(possible_head)
                 self.nt.append(tail[triple])
                 self.r.append(rel[triple])
+                # print(rel[triple])
                 self.ph.append(head[triple])
                 self.pt.append(tail[triple])
                 self.triple_time.append(self.start_idx['triple'][triple])
+                self.valid_list.append(self.variance_idx['triple'][triple])
                 neg_set.add((possible_head, rel[triple], tail[triple]))
 
         for triple in range(len(tail)):
@@ -258,7 +311,7 @@ class HyTE(Model):
             for k in range(self.p.M):
                 possible_tail = randint(0, max_ent - 1)
                 while (head[triple], rel[triple], possible_tail) in triple_set or (
-                head[triple], rel[triple], possible_tail) in neg_set:
+                        head[triple], rel[triple], possible_tail) in neg_set:
                     possible_tail = randint(0, max_ent - 1)
                 self.nh.append(head[triple])
                 self.nt.append(possible_tail)
@@ -266,6 +319,7 @@ class HyTE(Model):
                 self.ph.append(head[triple])
                 self.pt.append(tail[triple])
                 self.triple_time.append(self.start_idx['triple'][triple])
+                self.valid_list.append(self.variance_idx['triple'][triple])
                 neg_set.add((head[triple], rel[triple], possible_tail))
 
         # self.triple_time = triple_time
@@ -273,7 +327,7 @@ class HyTE(Model):
         self.max_rel = max_rel
         self.max_ent = max_ent
         self.max_time = len(self.year2id.keys())
-        self.data = list(zip(self.ph, self.pt, self.r, self.nh, self.nt, self.triple_time))
+        self.data = list(zip(self.ph, self.pt, self.r, self.nh, self.nt, self.triple_time, self.valid_list))
         self.data = self.data + self.data[0:self.p.batch_size]
 
     def calculated_score_for_positive_elements(self, t, epoch, f_valid, eval_mode='valid'):
@@ -291,11 +345,13 @@ class HyTE(Model):
             return
 
         start_lbl, end_lbl = self.get_span_ids(start_trip, end_trip)
+
         if eval_mode == 'test':
             f_valid.write(str(t[0]) + '\t' + str(t[1]) + '\t' + str(t[2]) + '\n')
         elif eval_mode == 'valid' and epoch == self.p.test_freq:
             f_valid.write(str(t[0]) + '\t' + str(t[1]) + '\t' + str(t[2]) + '\n')
 
+        # print("looking at program?????????????????1111111111")
         pos_head = sess.run(self.pos, feed_dict={self.pos_head: np.array([t[0]]).reshape(-1, 1),
                                                  self.rel: np.array([t[1]]).reshape(-1, 1),
                                                  self.pos_tail: np.array([t[2]]).reshape(-1, 1),
@@ -303,7 +359,9 @@ class HyTE(Model):
                                                  self.end_year: np.array([end_lbl] * self.max_ent),
                                                  self.mode: -1,
                                                  self.pred_mode: 1,
-                                                 self.query_mode: 1})
+                                                 self.query_mode: 1,
+                                                 self.valid_placeholder: np.array([1]).reshape(-1, 1)
+                                                 })
         pos_head = np.squeeze(pos_head)
 
         pos_tail = sess.run(self.pos, feed_dict={self.pos_head: np.array([t[0]]).reshape(-1, 1),
@@ -313,7 +371,9 @@ class HyTE(Model):
                                                  self.end_year: np.array([end_lbl] * self.max_ent),
                                                  self.mode: -1,
                                                  self.pred_mode: -1,
-                                                 self.query_mode: 1})
+                                                 self.query_mode: 1,
+                                                 self.valid_placeholder: np.array([1]).reshape(-1, 1)
+                                                 })
         pos_tail = np.squeeze(pos_tail)
 
         pos_rel = sess.run(self.pos, feed_dict={self.pos_head: np.array([t[0]]).reshape(-1, 1),
@@ -323,7 +383,9 @@ class HyTE(Model):
                                                 self.end_year: np.array([end_lbl] * self.max_rel),
                                                 self.mode: -1,
                                                 self.pred_mode: -1,
-                                                self.query_mode: -1})
+                                                self.query_mode: -1,
+                                                self.valid_placeholder: np.array([1]).reshape(-1, 1)
+                                                })
         pos_rel = np.squeeze(pos_rel)
 
         return pos_head, pos_tail, pos_rel
@@ -339,14 +401,23 @@ class HyTE(Model):
         self.mode = tf.placeholder(tf.int32, shape=())
         self.pred_mode = tf.placeholder(tf.int32, shape=())
         self.query_mode = tf.placeholder(tf.int32, shape=())
+        self.valid_placeholder =  tf.placeholder(tf.float32, shape=[None, 1])
+
 
     def create_feed_dict(self, batch, wLabels=True, dtype='train'):
-        ph, pt, r, nh, nt, start_idx = zip(*batch)
+        ph, pt, r, nh, nt, start_idx, valid = zip(*batch)
         feed_dict = {}
         feed_dict[self.pos_head] = np.array(ph).reshape(-1, 1)
         feed_dict[self.pos_tail] = np.array(pt).reshape(-1, 1)
         feed_dict[self.rel] = np.array(r).reshape(-1, 1)
         feed_dict[self.start_year] = np.array(start_idx)
+        feed_dict[self.valid_placeholder] = np.array(valid).reshape(-1, 1)
+        # print("valid")
+        # print(self.pos_head)
+
+
+        # feed_dict[self.valid_placeholder] = np.array(valid)
+        # feed_dict[self.valid_placeholder] = valid
         # feed_dict[self.end_year]   = np.array(end_idx)
         if dtype == 'train':
             feed_dict[self.neg_head] = np.array(nh).reshape(-1, 1)
@@ -438,17 +509,29 @@ class HyTE(Model):
         # pos_r_e_t_1 = pos_r_e
 
         if self.p.L1_flag:
-            pos = tf.reduce_sum(abs(pos_h_e_t_1 + pos_r_e_t_1 - pos_t_e_t_1), 1, keep_dims=True)
-            neg = tf.reduce_sum(abs(neg_h_e_t_1 + pos_r_e_t_1 - neg_t_e_t_1), 1, keep_dims=True)
-        # self.predict = pos
+            print("just debug lol")
+            print(self.valid_placeholder)
+
+            pos = tf.reduce_sum(self.valid_placeholder * abs(pos_h_e_t_1 + pos_r_e_t_1 - pos_t_e_t_1), 1,
+                                keep_dims=True)
+            neg = tf.reduce_sum(self.valid_placeholder * abs(neg_h_e_t_1 + pos_r_e_t_1 - neg_t_e_t_1), 1,
+                                keep_dims=True)
+
+            print("this is it")
+            #print(abs(pos_h_e_t_1 + pos_r_e_t_1 - pos_t_e_t_1))
+            # print(self.valid_placeholder * abs(pos_h_e_t_1 + pos_r_e_t_1 - pos_t_e_t_1))
+            #tf.Print(abs(pos_h_e_t_1 + pos_r_e_t_1 - pos_t_e_t_1).eval())
+
+            # self.predict = pos
         else:
+            print("just!!!!!!!!!!!!!!!! debug lol")
             pos = tf.reduce_sum((pos_h_e_t_1 + pos_r_e_t_1 - pos_t_e_t_1) ** 2, 1, keep_dims=True)
             neg = tf.reduce_sum((neg_h_e_t_1 + pos_r_e_t_1 - neg_t_e_t_1) ** 2, 1, keep_dims=True)
         # self.predict = pos
 
         '''
-		debug_nn([self.pred_mode,self.mode], feed_dict = self.create_feed_dict(self.data[0:self.p.batch_size],dtype='test'))
-		'''
+        debug_nn([self.pred_mode,self.mode], feed_dict = self.create_feed_dict(self.data[0:self.p.batch_size],dtype='test'))
+        '''
         return pos, neg
 
     def add_loss(self, pos, neg):
@@ -457,6 +540,8 @@ class HyTE(Model):
             if self.regularizer != None: loss += tf.contrib.layers.apply_regularization(self.regularizer,
                                                                                         tf.get_collection(
                                                                                             tf.GraphKeys.REGULARIZATION_LOSSES))
+            print(pos)
+            print("loss {0}".format(loss))
             return loss
 
     def add_optimizer(self, loss):
@@ -467,6 +552,7 @@ class HyTE(Model):
         return train_op
 
     def __init__(self, params):
+        self.reading()
         self.p = params
         self.p.batch_size = self.p.batch_size
         if self.p.l2 == 0.0:
@@ -481,6 +567,17 @@ class HyTE(Model):
         self.train_op = self.add_optimizer(self.loss)
         self.merged_summ = tf.summary.merge_all()
         self.summ_writer = None
+        self.id2year = {}
+        self.id2year = {'1': 1829, '0': 0, '2': 1857, '3': 1875, '4': 1889, '5': 1899, '6': 1906, '7': 1911, '8': 1916,
+                        '9': 1920, '10': 1924, '11': 1927, '12': 1930, '13': 1933, '14': 1937, '15': 1940, '16': 1943,
+                        '17': 1946, '18': 1949, '19': 1952, '20': 1955,
+                        '21': 1958, '22': 1961, '23': 1964, '24': 1966, '25': 1968, '26': 1970, '27': 1972, '28': 1974,
+                        '29': 1976, '30': 1978, '31': 1980, '32': 1982, '33': 1984,
+                        '34': 1986, '35': 1988, '36': 1990, '37': 1992, '38': 1994, '39': 1996, '40': 1997, '41': 1998,
+                        '42': 1999, '43': 2000, '44': 2001, '45': 2002,
+                        '46': 2003, '47': 2004, '48': 2005, '49': 2006, '50': 2007, '51': 2008, '52': 2009, '53': 2010,
+                        '54': 2011, '55': 2012, '56': 2013, '57': 2014, '58': 2015,
+                        '59': 2016, '60': 2017}
         print('model done')
 
     def run_epoch(self, sess, data, epoch):
@@ -558,6 +655,21 @@ class HyTE(Model):
             fileout_rel.close()
             print("Test ended")
 
+    def reading(self):
+        variance_path = 'data/' + 'yago' + '/' + 'large' + '/variance.txt'
+        self.variance = json.load(open(variance_path, 'r'))
+        print(self.variance)
+        self.id2year = {'1': 1829, '0': 0, '2': 1857, '3': 1875, '4': 1889, '5': 1899, '6': 1906, '7': 1911, '8': 1916,
+                        '9': 1920, '10': 1924, '11': 1927, '12': 1930, '13': 1933, '14': 1937, '15': 1940, '16': 1943,
+                        '17': 1946, '18': 1949, '19': 1952, '20': 1955,
+                        '21': 1958, '22': 1961, '23': 1964, '24': 1966, '25': 1968, '26': 1970, '27': 1972, '28': 1974,
+                        '29': 1976, '30': 1978, '31': 1980, '32': 1982, '33': 1984,
+                        '34': 1986, '35': 1988, '36': 1990, '37': 1992, '38': 1994, '39': 1996, '40': 1997, '41': 1998,
+                        '42': 1999, '43': 2000, '44': 2001, '45': 2002,
+                        '46': 2003, '47': 2004, '48': 2005, '49': 2006, '50': 2007, '51': 2008, '52': 2009, '53': 2010,
+                        '54': 2011, '55': 2012, '56': 2013, '57': 2014, '58': 2015,
+                        '59': 2016, '60': 2017}
+
 
 if __name__ == "__main__":
     print('here in main')
@@ -610,3 +722,4 @@ if __name__ == "__main__":
         sess.run(tf.global_variables_initializer())
         print('enter fitting')
         model.fit(sess)
+
