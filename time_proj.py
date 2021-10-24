@@ -11,7 +11,8 @@ from collections import defaultdict as ddict
 from sklearn.metrics import precision_recall_fscore_support
 from scipy.integrate import quad
 import math
-
+# survival analysis
+from lifelines import KaplanMeierFitter
 
 def integrant(x, sigma, present, end):
     return (1 / (sigma * math.sqrt(2 * math.pi))) * math.exp(-(((x - end) ** 2) / (2 * sigma ** 2)))
@@ -19,6 +20,167 @@ def integrant(x, sigma, present, end):
 
 YEARMIN = -50
 YEARMAX = 3000
+
+
+def survival_find():
+    triple_time_0 = np.array([[0, 0]])
+    triple_time_1 = np.array([[0, 0]])
+    triple_time_2 = np.array([[0, 0]])
+    triple_time_3 = np.array([[0, 0]])
+    triple_time_4 = np.array([[0, 0]])
+    triple_time_5 = np.array([[0, 0]])
+    triple_time_6 = np.array([[0, 0]])
+    triple_time_7 = np.array([[0, 0]])
+    triple_time_8 = np.array([[0, 0]])
+    triple_time_9 = np.array([[0, 0]])
+    save_func = {}
+    filename = "data/yago/large/train.txt"
+    with open(filename, 'r') as filein:
+        for line in filein:
+            relation = line.split()[1].strip()
+            start = line.split()[3].split('-')[0]
+            end = line.split()[4].split('-')[0]
+            if start == '####':
+                start = YEARMIN
+            elif start.find('#') != -1 or len(start) != 4:
+                continue
+
+            if end == '####':
+                end = YEARMAX
+            elif end.find('#') != -1 or len(end) != 4:
+                continue
+
+            start = int(start)
+            end = int(end)
+
+            if start > end:
+                end = YEARMAX
+
+            if end >= start:
+                start = int(start)
+                end = int(end)
+                # 1
+                if relation == "0":
+                    triple_time_0 = np.append(triple_time_0, np.array([[0, 0]]), axis=0)
+                    triple_time_0 = np.append(triple_time_0, np.array([[end - start, 1]]), axis=0)
+
+                if relation == "1":
+                    triple_time_1 = np.append(triple_time_1, np.array([[0, 0]]), axis=0)
+                    triple_time_1 = np.append(triple_time_1, np.array([[end - start, 1]]), axis=0)
+
+                if relation == "2":
+                    triple_time_2 = np.append(triple_time_2, np.array([[0, 0]]), axis=0)
+                    triple_time_2 = np.append(triple_time_2, np.array([[end - start, 1]]), axis=0)
+
+                if relation == "3":
+                    triple_time_3 = np.append(triple_time_3, np.array([[0, 0]]), axis=0)
+                    triple_time_3 = np.append(triple_time_3, np.array([[end - start, 1]]), axis=0)
+
+                if relation == "4":
+                    triple_time_4 = np.append(triple_time_4, np.array([[0, 0]]), axis=0)
+                    triple_time_4 = np.append(triple_time_4, np.array([[end - start, 1]]), axis=0)
+
+                if relation == "5":
+                    triple_time_5 = np.append(triple_time_5, np.array([[0, 0]]), axis=0)
+                    triple_time_5 = np.append(triple_time_5, np.array([[end - start, 1]]), axis=0)
+
+                if relation == "6":
+                    triple_time_6 = np.append(triple_time_6, np.array([[0, 0]]), axis=0)
+                    triple_time_6 = np.append(triple_time_6, np.array([[end - start, 1]]), axis=0)
+
+                if relation == "7":
+                    triple_time_7 = np.append(triple_time_7, np.array([[0, 0]]), axis=0)
+                    triple_time_7 = np.append(triple_time_7, np.array([[end - start, 1]]), axis=0)
+
+                if relation == "8":
+                    triple_time_8 = np.append(triple_time_8, np.array([[0, 0]]), axis=0)
+                    triple_time_8 = np.append(triple_time_8, np.array([[end - start, 1]]), axis=0)
+
+                if relation == "9":
+                    triple_time_9 = np.append(triple_time_9, np.array([[0, 0]]), axis=0)
+                    triple_time_9 = np.append(triple_time_9, np.array([[end - start, 1]]), axis=0)
+
+        # 0
+        df0 = pd.DataFrame({'T': triple_time_0[:, 0], 'E': triple_time_0[:, 1]})
+        T0 = df0['T']
+        E0 = df0['E']
+        kmf0 = KaplanMeierFitter()
+        kmf0.fit(T0, E0)
+
+        # 1
+        df1 = pd.DataFrame({'T': triple_time_1[:, 0], 'E': triple_time_1[:, 1]})
+        T1 = df1['T']
+        E1 = df1['E']
+        kmf1 = KaplanMeierFitter()
+        kmf1.fit(T1, E1)
+
+        # 2
+        df2 = pd.DataFrame({'T': triple_time_2[:, 0], 'E': triple_time_2[:, 1]})
+        T2 = df2['T']
+        E2 = df2['E']
+        kmf2 = KaplanMeierFitter()
+        kmf2.fit(T2, E2)
+
+        # 3
+        df3 = pd.DataFrame({'T': triple_time_3[:, 0], 'E': triple_time_3[:, 1]})
+        T3 = df3['T']
+        E3 = df3['E']
+        kmf3 = KaplanMeierFitter()
+        kmf3.fit(T3, E3)
+
+        # 4
+        df4 = pd.DataFrame({'T': triple_time_4[:, 0], 'E': triple_time_4[:, 1]})
+        T4 = df4['T']
+        E4 = df4['E']
+        kmf4 = KaplanMeierFitter()
+        kmf4.fit(T4, E4)
+
+        # 5
+        df5 = pd.DataFrame({'T': triple_time_5[:, 0], 'E': triple_time_5[:, 1]})
+        T5 = df5['T']
+        E5 = df5['E']
+        kmf5 = KaplanMeierFitter()
+        kmf5.fit(T5, E5)
+
+        # 6
+        df6 = pd.DataFrame({'T': triple_time_6[:, 0], 'E': triple_time_6[:, 1]})
+        T6 = df6['T']
+        E6 = df6['E']
+        kmf6 = KaplanMeierFitter()
+        kmf6.fit(T6, E6)
+        # 7
+        df7 = pd.DataFrame({'T': triple_time_7[:, 0], 'E': triple_time_7[:, 1]})
+        T7 = df7['T']
+        E7 = df7['E']
+        kmf7 = KaplanMeierFitter()
+        kmf7.fit(T7, E7)
+
+        # 8
+        df8 = pd.DataFrame({'T': triple_time_8[:, 0], 'E': triple_time_8[:, 1]})
+        T8 = df8['T']
+        E8 = df8['E']
+        kmf8 = KaplanMeierFitter()
+        kmf8.fit(T8, E8)
+
+        # 9
+        df9 = pd.DataFrame({'T': triple_time_9[:, 0], 'E': triple_time_9[:, 1]})
+        T9 = df9['T']
+        E9 = df9['E']
+        kmf9 = KaplanMeierFitter()
+        kmf9.fit(T9, E9)
+
+        save_func["0"] = kmf0
+        save_func["1"] = kmf1
+        save_func["2"] = kmf2
+        save_func["3"] = kmf3
+        save_func["4"] = kmf4
+        save_func["5"] = kmf5
+        save_func["6"] = kmf6
+        save_func["7"] = kmf7
+        save_func["8"] = kmf8
+        save_func["9"] = kmf9
+
+        return save_func
 
 
 class HyTE(Model):
@@ -275,12 +437,20 @@ class HyTE(Model):
                     if end_temp == '####':
                         end_temp = YEARMAX
                     present_temp = self.id2year[str(j)]
-                    sigma_temp = self.variance[str(rela[i])]
+                    # sigma_temp = self.variance[str(rela[i])]
                     # print("start: {0}, present: {1}, end: {2}, sig: {3}".format(start_temp, present_temp, end_temp, sigma_temp))
                     # print("length {0}".format(len(triple_time)))
                     # print("testing {0}".format(triple_time[2][0]))
-                    c = 1 - quad(integrant, int(start_temp), int(present_temp),
-                                 args=(int(sigma_temp), int(present_temp), int(end_temp)))[0]
+                    # c = 1 - quad(integrant, int(start_temp), int(present_temp),
+                    #              args=(int(sigma_temp), int(present_temp), int(end_temp)))[0]
+                    if int(present_temp) - int(start_temp) >= 0:
+                        # c = self.km_dict[int(rela[i])]["KM_estimate"][str(int(present_temp) - int(start_temp)) + ".0"]
+                        # print(self.km_dict)
+                        c = self.km_dict[str(rela[i])].survival_function_at_times(int(present_temp) - int(start_temp)).values[0]
+                        c = c + 0.1
+                        print(c)
+                    else:
+                        c = 1.0
                     # print(c)
                     self.variance_idx['triple'].append(c)
 
@@ -553,6 +723,7 @@ class HyTE(Model):
 
     def __init__(self, params):
         self.reading()
+        self.km_dict = survival_find()
         self.p = params
         self.p.batch_size = self.p.batch_size
         if self.p.l2 == 0.0:

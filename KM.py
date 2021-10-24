@@ -35,7 +35,7 @@ def survival_find_0(filename):
         E = df['E']
         kmf = KaplanMeierFitter()
         kmf.fit(T, E)
-        print(dict)
+        #print(dict)
         # kmf.cumulative_density_
         kmf.plot()
         plt.title("Kaplan Meier estimates relation " + relation)
