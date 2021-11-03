@@ -39,9 +39,9 @@ def cal_variance():
     for key, value in total.items():
         variance[key] = float(np.std(value))
 
-    print(total.get(9))
-    # plt.hist(total.get(9))
-    # plt.show()
+    print(total.get(4))
+    plt.hist(total.get(4))
+    plt.show()
 
     with open(variance_path, 'w') as file:
         file.write(json.dumps(variance))  # use `json.loads` to do the reverse

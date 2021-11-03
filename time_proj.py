@@ -21,6 +21,11 @@ def integrant(x, sigma, present, end):
 YEARMIN = -50
 YEARMAX = 3000
 
+def transform(initial_prob):
+    if initial_prob < 0.4:
+        return 0.0
+    return 0.15 * initial_prob + 0.89
+
 
 def survival_find():
     triple_time_0 = np.array([[0, 0]])
@@ -386,12 +391,6 @@ class HyTE(Model):
                 print(self.inp_idx['entity'][i], self.start_idx['entity'][i], self.end_idx['entity'][i])
         self.num_class = len(self.year2id.keys())
 
-        # for dtype in ['entity','triple']:
-        # 	self.labels[dtype] = self.getOneHot(self.start_idx[dtype],self.end_idx[dtype], self.num_class)# Representing labels by one hot notation
-
-        times = []
-
-        # print(times)
         keep_idx = set(self.inp_idx['triple'])
         for i in range(len(train_triples) - 1, -1, -1):
             if i not in keep_idx:
@@ -442,13 +441,11 @@ class HyTE(Model):
                     # print("length {0}".format(len(triple_time)))
                     # print("testing {0}".format(triple_time[2][0]))
                     # c = 1 - quad(integrant, int(start_temp), int(present_temp),
-                    #              args=(int(sigma_temp), int(present_temp), int(end_temp)))[0]
+                    #               (int(sigma_temp), int(present_temp), int(end_temp)))[0]
                     if int(present_temp) - int(start_temp) >= 0:
-                        # c = self.km_dict[int(rela[i])]["KM_estimate"][str(int(present_temp) - int(start_temp)) + ".0"]
-                        # print(self.km_dict)
                         c = self.km_dict[str(rela[i])].survival_function_at_times(int(present_temp) - int(start_temp)).values[0]
-                        c = c + 0.1
-                        print(c)
+                        c = transform(c)
+                        # print(c)
                     else:
                         c = 1.0
                     # print(c)
@@ -456,7 +453,10 @@ class HyTE(Model):
 
         print(len(head))
 
+        print("start idx")
         print(len(self.start_idx['triple']))
+        print("variance")
+        print(len(self.variance_idx['triple']))
 
         self.ph, self.pt, self.r, self.nh, self.nt, self.triple_time, self.valid_list = [], [], [], [], [], [], []
         for triple in range(len(head)):
@@ -669,7 +669,7 @@ class HyTE(Model):
         neg_t_e = tf.squeeze(tf.nn.embedding_lookup(transE_in, self.neg_tail))
 
         #### ----- time -----###
-        t_1 = tf.squeeze(tf.nn.embedding_lookup(self.time_embeddings, self.start_year))
+        t_1 = tf.squeeze(tf.nn.embedding_lookup(self.time_embeddings, self.start_time))
 
         pos_h_e_t_1 = self.time_projection(pos_h_e, t_1)
         neg_h_e_t_1 = self.time_projection(neg_h_e, t_1)
